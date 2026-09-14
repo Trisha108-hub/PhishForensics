@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # PhishForensics — Phishing Incident Analysis Platform
 
 A working local web app for cybersecurity consultants to analyze phishing incidents
@@ -111,3 +112,7 @@ Natural next additions, whenever you want them:
 - A results history/database (currently each case is stateless per request)
 - Auth (this has none right now — don't expose the backend on the open internet as-is)
 - URLScan.io / AbuseIPDB integrations (stubs are easy to add next to the VT calls in `urlAnalysis.js`)
+=======
+# PhishForensics
+Phishing incident analysis platform — header/URL/attachment forensics, CVSS + OWASP/MITRE scoring, psychological root-cause analysis, and auto-generated password-protected PDF reports.
+>>>>>>> f1bb6b1c980207ae2eb6e149cb7683f63fa97df0
