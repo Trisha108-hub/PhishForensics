@@ -337,4 +337,6 @@ app.get("*", (req, res, next) => {
   }
   res.sendFile(path.join(FRONTEND_DIR, "index.html"));
 });
-app.listen(PORT, () => console.log(`PhishForensics backend running on http://localhost:${PORT}`));
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`PhishForensics backend running on port ${PORT}`);
+});
