@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>PhishForensics — Phishing Incident Analysis Platform</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<style>
+  :root {
+    --bg: #050a12;
+    --panel: rgba(9, 22, 36, .9);
+    --panel-2: #0d1b2b;
+    --border: #1b4053;
+    --text: #d9f7ff;
+    --muted: #7895a3;
+    --red: #ff5577;
+    --orange: #ff9d4d;
+    --yellow: #f4d35e;
+    --green: #38e8a5;
+    --accent: #00c2ff;
+    --accent2: #63f3d2;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background:
+      linear-gradient(rgba(0,194,255,.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,194,255,.035) 1px, transparent 1px),
+      radial-gradient(circle at 50% -10%, #12334c 0%, var(--bg) 58%);
+    background-size: 32px 32px, 32px 32px, auto;
+    color: var(--text); min-height: 100vh;
+  }
+  header {
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 18px 40px; border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(6px);
+  }
+  header .logo { display:flex; align-items:center; gap:12px; font-weight:800; font-size:22px; letter-spacing:.4px; }
+  header .logo span.badge {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    width:38px; height:38px; border-radius:10px; display:flex; align-items:center; justify-content:center;
+    font-size:18px;
+  }
+  nav { display:flex; gap:6px; }
+  nav button {
+    background: transparent; border: 1px solid var(--border); color: var(--muted);
+    padding: 9px 18px; border-radius: 8px; cursor:pointer; font-size:14px; transition: .15s;
+  }
+  nav button.active, nav button:hover { background: var(--panel-2); color: var(--text); border-color: var(--accent); }
+
+  main { max-width: 1100px; margin: 0 auto; padding: 36px 24px 100px; }
+  .landing { max-width:1120px; margin:0 auto; padding:72px 24px 88px; }
+  .landing-layout { display:grid; grid-template-columns:minmax(0,1.05fr) minmax(420px,.95fr); gap:72px; align-items:center; }
+  .landing-kicker { display:inline-flex; align-items:center; gap:9px; color:var(--accent2); font:600 12px Consolas,monospace; letter-spacing:1.7px; text-transform:uppercase; border:1px solid rgba(99,243,210,.22); padding:8px 11px; background:rgba(9,22,36,.55); }
+  .landing-kicker:before { content:""; width:6px; height:6px; border-radius:50%; background:var(--accent2); box-shadow:0 0 12px var(--accent2); }
+  .landing h1 { max-width:650px; margin:22px 0 18px; font-size:clamp(42px,5.7vw,72px); line-height:1.02; letter-spacing:-2.8px; }
+  .landing h1 span { color:var(--accent); }
+  .landing-subtitle { max-width:590px; margin:0; color:var(--muted); line-height:1.75; font-size:16px; }
+  .landing-proof { display:flex; gap:22px; margin-top:28px; color:#a9c5ce; font:12px Consolas,monospace; }
+  .landing-proof strong { display:block; color:var(--text); font-size:19px; margin-bottom:4px; }
+  .landing-proof span { display:block; color:var(--muted); }
+  .entry-grid { display:grid; grid-template-columns:1fr; gap:12px; margin:0; text-align:left; }
+  .entry-grid:before { content:"CHOOSE YOUR ANALYSIS PATH"; color:var(--muted); font:600 11px Consolas,monospace; letter-spacing:1.5px; margin-bottom:2px; }
+  .entry-card { position:relative; overflow:hidden; border:1px solid var(--border); border-radius:12px; padding:21px 22px 20px; background:linear-gradient(145deg, rgba(13,39,57,.96), rgba(7,16,27,.96)); box-shadow:0 18px 50px rgba(0,0,0,.25); }
+  .entry-card:before { content:""; position:absolute; inset:0 0 auto; height:3px; background:linear-gradient(90deg,var(--accent),var(--accent2)); }
+  .entry-card.quick:before { background:linear-gradient(90deg,var(--yellow),var(--orange)); }
+  .entry-icon { float:right; color:var(--accent2); font:600 11px Consolas,monospace; letter-spacing:1px; padding-top:3px; }
+  .entry-card.quick .entry-icon { color:var(--yellow); }
+  .entry-card h2 { margin:0 0 7px; font-size:20px; }
+  .entry-card p { margin:0; color:var(--muted); line-height:1.55; font-size:13px; }
+  .entry-card ul { display:none; }
+  .entry-button { margin-top:16px; padding:10px 16px; font-size:13px; }
+  .landing-note { margin-top:42px; color:var(--muted); font:12px Consolas,monospace; }
+  .analysis-preview { border:1px solid var(--border); border-radius:14px; background:rgba(7,16,27,.78); box-shadow:0 25px 70px rgba(0,0,0,.3); overflow:hidden; }
+  .preview-top { display:flex; justify-content:space-between; align-items:center; padding:14px 18px; border-bottom:1px solid var(--border); color:var(--muted); font:11px Consolas,monospace; }
+  .preview-status { color:var(--green); }
+  .preview-body { padding:22px; }
+  .preview-subject { color:var(--muted); font:12px Consolas,monospace; line-height:1.7; }
+  .preview-subject strong { color:var(--text); font-weight:500; }
+  .preview-score { display:flex; align-items:center; gap:18px; padding:22px 0; border-bottom:1px dashed var(--border); }
+  .score-ring { width:76px; height:76px; display:grid; place-items:center; border-radius:50%; background:conic-gradient(var(--red) 0 79%, #183343 79% 100%); position:relative; flex:none; }
+  .score-ring:after { content:""; position:absolute; inset:7px; border-radius:50%; background:#091622; }
+  .score-ring strong { position:relative; z-index:1; font-size:22px; }
+  .preview-score p { margin:0; color:#a9c5ce; font-size:13px; line-height:1.7; }
+  .preview-score p b { color:var(--text); }
+  .preview-list { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:18px; }
+  .preview-item { border:1px solid rgba(27,64,83,.7); padding:11px; color:var(--muted); font-size:12px; }
+  .preview-item b { display:block; color:var(--text); margin-bottom:4px; }
+  .mode-back { margin-bottom:16px; }
+  .mode-label { color:var(--accent2); font:600 12px Consolas,monospace; letter-spacing:1px; text-transform:uppercase; }
+  .panel {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
+    padding: 26px; margin-bottom: 22px;
+  }
+  .panel h2 { margin-top:0; font-size: 18px; display:flex; align-items:center; gap:10px; }
+  .panel h2 .num {
+    background: var(--accent); color:white; width:26px; height:26px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center; font-size:13px;
+  }
+  label { display:block; margin: 14px 0 6px; font-size:13px; color: var(--muted); }
+  textarea, input[type=text], input[type=number], input[type=password], select {
+    width:100%; background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
+    padding:10px 12px; border-radius:8px; font-size:14px; font-family: inherit;
+  }
+  textarea { min-height: 110px; resize: vertical; font-family: 'Consolas', monospace; font-size: 12.5px; }
+  .row { display:flex; gap:16px; flex-wrap:wrap; }
+  .row > * { flex:1; min-width:220px; }
+  .drop {
+    border: 2px dashed var(--border); border-radius: 10px; padding: 22px; text-align:center;
+    color: var(--muted); cursor:pointer; transition:.15s;
+  }
+  .drop:hover { border-color: var(--accent); color: var(--text); }
+  .file-chip {
+    display:inline-flex; align-items:center; gap:8px; background: var(--panel-2);
+    border:1px solid var(--border); padding:6px 10px; border-radius:20px; margin:4px 6px 0 0; font-size:12px;
+  }
+  .btn {
+    background: linear-gradient(135deg, #007f9e, var(--accent)); color:white; border:1px solid #28d7e8;
+    padding: 13px 26px; border-radius: 9px; font-size:15px; font-weight:600; cursor:pointer;
+    box-shadow: 0 6px 20px rgba(0,194,255,.18);
+  }
+  .btn:hover { filter:brightness(1.08); }
+  .btn.secondary { background: var(--panel-2); border: 1px solid var(--border); box-shadow:none; }
+  .checkbox-row { display:flex; align-items:center; gap:8px; margin:6px 0; }
+  .employee-card { border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:14px; background: var(--panel-2); }
+  .employee-card .grid2 { display:grid; grid-template-columns: 1fr 1fr; gap:6px 20px; }
+  .question-grid { display:grid; grid-template-columns: 1fr 1fr; gap:12px 18px; }
+  .question-box { background: var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:12px; }
+  .question-box label { margin-top:0; color:var(--text); }
+  .inline-options { display:flex; gap:12px; flex-wrap:wrap; color:var(--muted); font-size:13px; }
+  .inline-options label { display:flex; align-items:center; gap:6px; margin:4px 0; }
+  input[type=range] { width:100%; accent-color: var(--accent); }
+  .form-actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:16px; }
+  .badge-sev { padding:2px 10px; border-radius:20px; font-size:11px; font-weight:700; }
+  .sev-critical { background:#7f1d1d; color:#fecaca; }
+  .sev-high { background:#7c2d12; color:#fed7aa; }
+  .sev-medium { background:#713f12; color:#fef08a; }
+  .sev-low { background:#14532d; color:#bbf7d0; }
+  .sev-info { background:#1e293b; color:#cbd5e1; }
+  .finding { padding:8px 10px; border-left:3px solid var(--border); margin-bottom:6px; background: rgba(255,255,255,.02); font-size:13px; }
+  .grid-charts { display:grid; grid-template-columns: 1fr 1fr; gap:20px; }
+  .stat-box { text-align:center; background:var(--panel-2); border-radius:10px; padding:16px; border:1px solid var(--border); }
+  .stat-box .num { font-size:28px; font-weight:800; }
+  .stat-box .label { font-size:12px; color:var(--muted); margin-top:4px; }
+  .hidden { display:none !important; }
+  .spinner { border: 3px solid var(--border); border-top: 3px solid var(--accent); border-radius:50%; width:22px; height:22px; animation:spin 0.8s linear infinite; display:inline-block; vertical-align:middle;}
+  @keyframes spin { to { transform: rotate(360deg);} }
+  footer { text-align:center; color: var(--muted); font-size:12px; padding: 20px; }
+  code.small { font-size:11px; color:var(--accent2); word-break:break-all; }
+  @media (max-width: 760px) {
+    header { padding:18px 20px; align-items:flex-start; gap:14px; flex-direction:column; }
+    nav { flex-wrap:wrap; }
+    .employee-card .grid2, .question-grid, .grid-charts { grid-template-columns:1fr; }
+    .landing-layout { grid-template-columns:1fr; gap:42px; }
+    .landing { padding-top:42px; }
+    .landing h1 { letter-spacing:-1.8px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo"><span class="badge">PF</span> PhishForensics <span style="color:var(--muted); font-weight:400; font-size:13px;"> — Incident Analysis Platform</span></div>
+  <nav>
+    <button class="active" data-tab="case">Full Case Analysis</button>
+    <button data-tab="triage">Quick Triage</button>
+  </nav>
+</header>
+
+<section id="landing" class="landing">
+  <div class="landing-kicker">PHISHFORENSICS // SECURE ANALYSIS CONSOLE</div>
+  <h1>Turn a phishing email into <span>defensible evidence.</span></h1>
+  <p class="landing-subtitle">PhishForensics helps security teams understand what happened, why someone clicked, and what to do next. Choose the workflow that matches the investigation.</p>
+  <div class="landing-proof">
+    <div><strong>01</strong><span>Collect evidence</span></div>
+    <div><strong>02</strong><span>Score the risk</span></div>
+    <div><strong>03</strong><span>Explain the incident</span></div>
+  </div>
+  <div class="entry-grid" style="margin-top:32px;">
+    <article class="entry-card">
+      <div class="entry-icon">DEEP SCAN</div>
+      <h2>Full Case Analysis</h2>
+      <p>Build a complete incident report with evidence, risk scoring, employee responses, and a downloadable PDF.</p>
+      <button class="btn entry-button" data-mode="case">Start a full case</button>
+    </article>
+    <article class="entry-card quick">
+      <div class="entry-icon">FAST CHECK</div>
+      <h2>Quick Triage</h2>
+      <p>Check a URL, header, attachment, QR code, or email when you need an answer now.</p>
+      <button class="btn secondary entry-button" data-mode="triage">Run a quick check</button>
+    </article>
+  </div>
+  <div class="landing-note">[ authorized security use only ] &nbsp; // &nbsp; SHA256 chain of custody</div>
+</section>
+
+<main>
+<div id="modeHeader" class="hidden mode-back">
+  <button id="backToLanding" class="btn secondary">Change workflow</button>
+  <span id="modeLabel" class="mode-label"></span>
+</div>
+
+<!-- ============= FULL CASE ANALYSIS TAB ============= -->
+<section id="tab-case">
+
+  <div class="panel">
+    <h2><span class="num">1</span> Case Intake</h2>
+    <label>Case backend URL</label>
+    <input type="text" id="apiBase" value="http://localhost:4000" />
+
+    <label>Raw email source (full headers + body, or paste .eml content)</label>
+    <textarea id="rawEmailSource" placeholder="Received: from ...
+From: 'IT Support' <it-support@paypa1-secure.tk>
+Subject: URGENT: Verify your account now
+..."></textarea>
+
+    <div class="row">
+      <div>
+        <label>Plain text body (optional — auto-derived if left blank)</label>
+        <textarea id="plainTextBody" placeholder="Dear employee, your account will be suspended..."></textarea>
+      </div>
+      <div>
+        <label>HTML body (optional — improves link/text-mismatch detection)</label>
+        <textarea id="htmlBody" placeholder="<a href='https://evil.tld'>https://paypal.com</a>"></textarea>
+      </div>
+    </div>
+
+    <label>Attachments</label>
+    <div class="drop" id="attachDrop">Click or drag attachment files here (docs, images, executables — anything the target received)</div>
+    <input type="file" id="attachInput" multiple class="hidden" />
+    <div id="attachChips"></div>
+
+    <label>QR code image (optional, if the attack used a QR code)</label>
+    <div class="drop" id="qrDrop">Click or drag a QR code image here</div>
+    <input type="file" id="qrInput" accept="image/*" class="hidden" />
+    <div id="qrChip"></div>
+  </div>
+
+  <div class="panel">
+    <h2><span class="num">2</span> Employee Questionnaire Responses</h2>
+    <p style="color:var(--muted); font-size:13px;">Add each employee who received or interacted with this phishing attempt. You can add responses directly in the questionnaire below.</p>
+    <div id="employeeList"></div>
+    <button class="btn secondary" onclick="addEmployeeCard()">+ Add Employee Response</button>
+  </div>
+
+  <div class="panel">
+    <h2><span class="num">3</span> Run Analysis</h2>
+    <button class="btn" onclick="runFullAnalysis()">Analyze Full Case</button>
+    <span id="caseSpinner" class="hidden spinner"></span>
+    <div id="caseError" style="color:var(--red); margin-top:10px;"></div>
+  </div>
+
+  <div class="panel hidden" id="resultsPanel">
+    <h2><span class="num">OK</span> Results — <span id="caseIdLabel"></span></h2>
+
+    <div class="grid-charts">
+      <div class="stat-box"><div class="num" id="overallSeverityNum">-</div><div class="label">Overall Severity /100</div></div>
+      <div class="stat-box"><div class="num" id="cvssScoreNum">-</div><div class="label">CVSS 3.1 Base Score</div></div>
+    </div>
+    <div style="margin-top:20px;"><canvas id="subScoreChart" height="90"></canvas></div>
+
+    <h2 style="margin-top:30px;"><span class="num">i</span> Executive Summary</h2>
+    <p id="execSummary" style="line-height:1.6;"></p>
+
+    <div id="findingsSections"></div>
+
+    <div style="margin-top:26px;">
+      <h3 style="margin-bottom:8px;">Export Full Analysis Report</h3>
+      <label>Report password (for the exported PDF)</label>
+      <input type="password" id="reportPassword" placeholder="Leave blank to use server default" />
+      <button class="btn" style="margin-top:14px;" onclick="exportReport()">Generate Analysis Report PDF</button>
+      <span id="reportSpinner" class="hidden spinner"></span>
+      <div id="reportResult" style="margin-top:14px;"></div>
+    </div>
+  </div>
+
+</section>
+
+<!-- ============= QUICK TRIAGE TAB ============= -->
+<section id="tab-triage" class="hidden">
+  <div class="panel">
+    <h2>Quick URL Check</h2>
+    <input type="text" id="triageUrl" placeholder="https://suspicious-link.example.com/login" />
+    <button class="btn" style="margin-top:12px;" onclick="triageUrlCheck()">Check URL</button>
+    <div id="triageUrlResult" style="margin-top:14px;"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Quick Header/Metadata Check</h2>
+    <textarea id="triageHeaders" placeholder="Paste raw email headers here..."></textarea>
+    <button class="btn" style="margin-top:12px;" onclick="triageHeaderCheck()">Analyze Headers</button>
+    <div id="triageHeaderResult" style="margin-top:14px;"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Quick Attachment / Image Check</h2>
+    <div class="drop" id="triageAttachDrop">Click or drag a single file here</div>
+    <input type="file" id="triageAttachInput" class="hidden" />
+    <div id="triageAttachResult" style="margin-top:14px;"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Full Suspicious Email Scan</h2>
+    <p style="color:var(--muted); font-size:13px;">Paste the entire raw email (.eml content) — runs header + URL + content checks in one go, no case file saved.</p>
+    <textarea id="triageFullEmail" placeholder="Full raw .eml content..."></textarea>
+    <button class="btn" style="margin-top:12px;" onclick="triageFullEmailCheck()">Scan Email</button>
+    <div id="triageFullResult" style="margin-top:14px;"></div>
+  </div>
+</section>
+
+<!-- ============= QUESTIONNAIRE TAB ============= -->
+<section id="tab-questionnaire" class="hidden">
+  <div class="panel">
+    <h2>Employee Social-Engineering Questionnaire</h2>
+    <p style="color:var(--muted);">Complete this response for each employee involved in the incident. Select <b>+ Add Response to Case</b> at the bottom to add as many employees as needed.</p>
+    <div class="form-actions">
+      <button class="btn secondary" onclick="downloadVictimPdf()">Download Questionnaire PDF</button>
+      <label class="btn secondary" for="questionnaireUpload" style="display:inline-flex;align-items:center;justify-content:center;margin:0;cursor:pointer;">Upload Completed Response PDF(s)</label>
+      <input type="file" id="questionnaireUpload" accept=".pdf,application/pdf" multiple class="hidden" onchange="uploadQuestionnaire()">
+      <button class="btn" onclick="addFilledQuestionnaireToCase()">+ Add Response to Case</button>
+      <button class="btn secondary" onclick="resetQuestionnaireForm()">Clear Form</button>
+    </div>
+    <div id="questionnaireFormResult" style="margin-top:10px; color:var(--muted); font-size:13px;"></div>
+    <div id="questionnaireUploadResult" style="margin-top:8px; color:var(--muted); font-size:13px;"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Fill Employee Response Here</h2>
+    <div class="row">
+      <div><label>Employee ID</label><input type="text" id="qEmployeeId" placeholder="emp001"></div>
+      <div><label>Department</label><input type="text" id="qDepartment" placeholder="Finance"></div>
+      <div><label>Role</label><input type="text" id="qRole" placeholder="Accounts Payable"></div>
+    </div>
+
+    <div class="question-grid" style="margin-top:16px;">
+      <div class="question-box">
+        <label>Did the sender name look familiar or trusted?</label>
+        <div class="inline-options">
+          <label><input type="radio" name="qRecognizedSenderName" value="true"> Yes</label>
+          <label><input type="radio" name="qRecognizedSenderName" value="false" checked> No</label>
+        </div>
+      </div>
+      <div class="question-box">
+        <label>Were you expecting this email or request?</label>
+        <div class="inline-options">
+          <label><input type="radio" name="qWasExpectingSuchEmail" value="true"> Yes</label>
+          <label><input type="radio" name="qWasExpectingSuchEmail" value="false" checked> No</label>
+        </div>
+      </div>
+      <div class="question-box">
+        <label>Did you verify the actual sender email address?</label>
+        <div class="inline-options">
+          <label><input type="radio" name="qCheckedSenderAddress" value="true"> Yes</label>
+          <label><input type="radio" name="qCheckedSenderAddress" value="false" checked> No</label>
+        </div>
+      </div>
+      <div class="question-box">
+        <label>Did you hover/check the link destination before clicking?</label>
+        <div class="inline-options">
+          <label><input type="radio" name="qHoveredOverLink" value="true"> Yes</label>
+          <label><input type="radio" name="qHoveredOverLink" value="false" checked> No</label>
+        </div>
+      </div>
+      <div class="question-box">
+        <label>Did you enter your password, MFA code, or other credentials?</label>
+        <div class="inline-options">
+          <label><input type="radio" name="qEnteredCredentials" value="true"> Yes</label>
+          <label><input type="radio" name="qEnteredCredentials" value="false" checked> No</label>
+        </div>
+      </div>
+      <div class="question-box">
+        <label>Did you open an attachment or downloaded file?</label>
+        <div class="inline-options">
+          <label><input type="radio" name="qOpenedAttachment" value="true"> Yes</label>
+          <label><input type="radio" name="qOpenedAttachment" value="false" checked> No</label>
+        </div>
+      </div>
+      <div class="question-box">
+        <label>Did you report it to security or IT?</label>
+        <div class="inline-options">
+          <label><input type="radio" name="qReportedToSecurity" value="true"> Yes</label>
+          <label><input type="radio" name="qReportedToSecurity" value="false" checked> No</label>
+        </div>
+      </div>
+      <div class="question-box">
+        <label>Have you completed security awareness training?</label>
+        <div class="inline-options">
+          <label><input type="radio" name="qPriorSecurityTrainingCompleted" value="true"> Yes</label>
+          <label><input type="radio" name="qPriorSecurityTrainingCompleted" value="false" checked> No</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label>Reporting delay in minutes, if reported</label>
+        <input type="number" id="qReportedDelayMinutes" min="0" placeholder="30">
+      </div>
+    </div>
+
+    <h3 style="margin-top:22px;">Social-Engineering Trigger Ratings</h3>
+    <p style="color:var(--muted); font-size:13px;">Rate how strongly each trigger influenced the employee's reaction. 0 means not present, 5 means very strong.</p>
+    <div class="question-grid">
+      <div class="question-box"><label>Authority: boss, IT, HR, vendor, executive</label><input type="range" min="0" max="5" value="0" id="qTriggerAuthority"><span id="qTriggerAuthorityValue">0</span>/5</div>
+      <div class="question-box"><label>Urgency: deadline, warning, immediate action</label><input type="range" min="0" max="5" value="0" id="qTriggerUrgency"><span id="qTriggerUrgencyValue">0</span>/5</div>
+      <div class="question-box"><label>Trust/Familiarity: familiar name, usual workflow</label><input type="range" min="0" max="5" value="0" id="qTriggerTrust"><span id="qTriggerTrustValue">0</span>/5</div>
+      <div class="question-box"><label>Fear: account lock, penalty, breach, loss</label><input type="range" min="0" max="5" value="0" id="qTriggerFear"><span id="qTriggerFearValue">0</span>/5</div>
+      <div class="question-box"><label>Curiosity: unexpected file, benefit, surprise</label><input type="range" min="0" max="5" value="0" id="qTriggerCuriosity"><span id="qTriggerCuriosityValue">0</span>/5</div>
+      <div class="question-box"><label>Fatigue/Distraction: busy, multitasking, tired</label><input type="range" min="0" max="5" value="0" id="qTriggerFatigue"><span id="qTriggerFatigueValue">0</span>/5</div>
+    </div>
+
+    <h3 style="margin-top:22px;">Additional Assessment Questions</h3>
+    <p style="color:var(--muted); font-size:13px;">Rate each item from 0 (never/not applicable) to 5 (always/strongly applicable). These six answers are averaged into the questionnaire score.</p>
+    <div class="question-grid">
+      <div class="question-box"><label>Verified the request through another trusted channel</label><input type="range" min="0" max="5" value="0" id="qRatingVerifiedViaSecondChannel"><span id="qRatingVerifiedViaSecondChannelValue">0</span>/5</div>
+      <div class="question-box"><label>Clicked a link in the message</label><input type="range" min="0" max="5" value="0" id="qRatingClickedLink"><span id="qRatingClickedLinkValue">0</span>/5</div>
+      <div class="question-box"><label>Downloaded a file from the message</label><input type="range" min="0" max="5" value="0" id="qRatingDownloadedFile"><span id="qRatingDownloadedFileValue">0</span>/5</div>
+      <div class="question-box"><label>Shared sensitive or confidential information</label><input type="range" min="0" max="5" value="0" id="qRatingSharedSensitiveInfo"><span id="qRatingSharedSensitiveInfoValue">0</span>/5</div>
+      <div class="question-box"><label>Message asked for an MFA approval or code</label><input type="range" min="0" max="5" value="0" id="qRatingUsedMfaAfterPrompt"><span id="qRatingUsedMfaAfterPromptValue">0</span>/5</div>
+      <div class="question-box"><label>Reported the message quickly after noticing it</label><input type="range" min="0" max="5" value="0" id="qRatingReportedImmediately"><span id="qRatingReportedImmediatelyValue">0</span>/5</div>
+    </div>
+
+    <label>Employee's own account of what influenced their action</label>
+    <textarea id="qSelfReportedReason" placeholder="Example: It looked like it came from my manager, it said urgent, and I was rushing between meetings."></textarea>
+
+    <div class="form-actions">
+      <button class="btn secondary" onclick="addFilledQuestionnaireToCase()">+ Add Response to Case</button>
+      <button class="btn secondary" onclick="resetQuestionnaireForm()">Clear Form</button>
+    </div>
+    <div id="questionnaireFormResult" style="margin-top:10px; color:var(--muted); font-size:13px;"></div>
+  </div>
+</section>
+
+</main>
+
+<footer>PhishForensics — for authorized security consulting use only. All artifacts are SHA256-hashed for chain-of-custody.</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
